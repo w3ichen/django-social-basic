@@ -1,0 +1,118 @@
+{%extends "blog/base.html"%}
+{% block content%}
+
+ <form method="POST" action="{% url 'post-new' %}">
+    {% csrf_token %}
+    {{ post_form }}
+    <button type="submit">Post</button>
+</form>
+
+ {% for post in posts %}
+       <div class="post">
+             <div>date_posted: {{post.date_posted}}</div>
+             <div>user: {{post.user}}</div>
+             <div>content: {{post.content}}</div>
+
+             {% if post.user == user %}
+	    		<button onclick="window.location.href='{%url 'post-edit' post.id%}'">edit</button>
+				<button onclick="if (window.confirm('Are you sure you want to delete this post?')){window.location.href='{%url 'post-delete' post.id%}'}">del</button>
+		   	 {% endif %}
+
+		   	 <div id="likesCount-{{post.id}}">{{ post.likes_count }} likes</div>
+		   	 <small>
+			      Liked by 
+			      {% for user in post.likes.all %}
+			            {{ user.username }}, 
+			      {% endfor %}
+			</small>
+			<br>
+			 <button class="likeBtn" name="{{post.id}}" id="likeBtn-{{post.id}}">Like</button>
+
+
+			 <hr>
+			 <div id="commentsCount-{{post.id}}">{{ post.comments_count }} comments</div>
+
+			 <div class="comments" id="comments-{{post.id}}">
+			{% for comment in post.comments.all %}
+					<div style="width: 50%;">
+							<div>
+								{{ comment.user.username }}
+								{% if comment.user == user %}
+									<button onclick="if (window.confirm('Are you sure you want to delete this comment?')){window.location.href='{%url 'comment-delete' post.id comment.id%}'}" class="comment-delete">del</button>
+								{% endif %}
+							</div>
+							
+							<div>{{ comment.date_posted }}</div>
+							<div>{{ comment.text }}</div>
+					</div>
+			{% endfor %}
+			</div>
+
+			<input type="text" placeholder="Write a comment" id="text-{{post.id}}" onkeydown="if(event.keyCode==13){document.getElementById('commentBtn-{{post.id}}').click()}">
+			<button class="commentBtn" name="{{post.id}}" id="commentBtn-{{post.id}}">send</button>
+
+
+
+
+       </div>
+       
+ {% endfor %}
+ 
+
+<script type="text/javascript">
+$('.likeBtn').click(function(){
+	var post_id = $(this).attr("name")
+    $.ajax(
+    {
+        type:"GET",
+        url: "/like",
+        data:{
+              post_id: post_id
+        },
+        success: function( data ) 
+        {
+        	console.log(data)
+        	// increase number of likes
+        	document.getElementById('likesCount-'+post_id).innerHTML = parseInt(document.getElementById('likesCount-'+post_id).innerHTML) + parseInt(data)+" likes";
+        }
+     })
+})
+
+$('.commentBtn').click(function(){
+	var post_id = $(this).attr("name")
+    $.ajax(
+    {
+        type:"GET",
+        url: "comment/",
+        data:{
+              post_id: post_id,
+              text: document.getElementById("text-"+post_id).value
+        },
+        success: function( data ) 
+        {	// display the new comment
+        	document.getElementById("comments-"+post_id).innerHTML += `
+        	<div style="width: 50%;">
+				<div>
+					Me
+				</div>
+				<div>Just Now</div>
+				<div>`+document.getElementById("text-"+post_id).value+`</div>
+			</div>
+        	`
+        	document.getElementById("commentsCount-"+post_id).innerHTML = parseInt(document.getElementById("commentsCount-"+post_id).innerHTML) + 1+" comments";
+
+        	document.getElementById("text-"+post_id).value = ""; // clear comment
+        	
+        }
+     })
+});
+</script>
+
+<style type="text/css">
+.post{
+     outline: 2px solid black;
+     margin: 2%;
+     padding: 1%;
+}
+</style>
+{% endblock content %}
